@@ -1,0 +1,112 @@
+name: Generate Reflexionsquiz
+on:
+  push:
+    paths:
+      - 'data/quiz.json'  # GitHub Actions wird ausgelöst, wenn die quiz.json geändert wird
+
+jobs:
+  build-quiz:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Extract Quiz Data
+      run: |
+        echo "Lese Quizdaten aus quiz.json"
+        cat data/quiz.json
+        mv data/quiz.json quiz.json  # Verschiebe Datei für spätere Nutzung
+
+    - name: Generate HTML Page
+      run: |
+        QUIZ_TITLE=$(jq -r '.title' quiz.json)
+        ASPECTS=$(jq -r '.aspects[]' quiz.json)
+        SCENARIOS=$(jq -r '.scenarios[] | {text: .scenarios[], kompetenz: .aspect}' quiz.json)
+
+        FILENAME=$(openssl rand -hex 6).html
+
+        # HTML-Seite generieren
+        cat <<EOF > ./docs/$FILENAME
+        <!DOCTYPE html>
+        <html lang="de">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@1.5.5/css/pico.min.css">
+            <title>\$QUIZ_TITLE</title>
+            <script>
+                const szenarien = \$SCENARIOS;
+                const kompetenzen = [
+                    \${ASPECTS | map(k, i => `{ nummer: \${i + 1}, name: "\${k}" }`).join(",\n")}
+                ];
+
+                let aktuellesSzenario = null;
+
+                function neuesSzenario() {
+                    aktuellesSzenario = szenarien[Math.floor(Math.random() * szenarien.length)];
+                    document.getElementById('article').innerText = aktuellesSzenario.text;
+                    document.getElementById('antwort').innerHTML = '';  // Antwort zurücksetzen
+                    document.getElementById('neues-szenario-btn').style.display = 'none'; // Verstecke den "Nächstes Szenario"-Button
+                }
+
+                function kompetenzUeberpruefen() {
+                    const gewaehlteKompetenz = parseInt(document.getElementById('kompetenz-auswahl').value); // Parse als Integer
+                    const richtigeKompetenz = kompetenzen.find(k => k.nummer === aktuellesSzenario.kompetenz);
+                    const gewaehlte = kompetenzen.find(k => k.nummer === gewahlteKompetenz);
+
+                    let antwortText = '';
+                    if (gewahlteKompetenz === aktuellesSzenario.kompetenz) {
+                        antwortText = `Ja, '\${richtigeKompetenz.name}' passt hier gut`;
+                    } else {
+                        antwortText = `Das könnte auch passen. Alternativ wäre auch '\${richtigeKompetenz.name}' denkbar.`;
+                    }
+
+                    document.getElementById('antwort').innerHTML = antwortText;
+                    document.getElementById('neues-szenario-btn').style.display = 'block'; // Zeige den "Nächstes Szenario"-Button
+                }
+            </script>
+        </head>
+
+        <body onload="neuesSzenario()">
+
+            <main class="container">
+                <h1>\$QUIZ_TITLE</h1>
+                <h2>Wozu passt das folgende fiktive Szenario?</h2>
+                <p>Die Beispiele stehen für positive und negative Ausprägungen. Es gibt immer mehrere Möglichkeiten. Ziel ist die Reflexion der unterschiedlichen Möglichkeiten.</p>
+                <article id="article">
+                    <!-- Hier wird ein zufällig ausgewähltes Szenario angezeigt -->
+                </article>
+
+                <label for="kompetenz-auswahl">Wähle aus:</label>
+                <select id="kompetenz-auswahl">
+                    <option value="" selected disabled>Bitte wählen</option>
+                    \${kompetenzen.map(k => `<option value="\${k.nummer}">\${k.name}</option>`).join('')}
+                </select>
+
+                <button onclick="kompetenzUeberpruefen()">Überprüfen</button>
+
+                <div id="antwort">
+                    <!-- Hier wird die Rückmeldung angezeigt -->
+                </div>
+                <p><hr></p>
+                <button id="neues-szenario-btn" onclick="neuesSzenario()" style="display:none;">Nächstes Szenario</button>
+
+            </main>
+
+            <footer class="container">
+                <small><a href="https://eBildungslabor.github.io/reflexionsquiz">Reflexionsquiz</a> ist ein offenes Tool aus dem <a href="https://ebildungslabor.de">eBildungslabor</a>. </small>
+            </footer>
+
+        </body>
+
+        </html>
+        EOF
+
+    - name: Commit and Push HTML
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add ./docs/*.html
+        git commit -m "Generate quiz page for \$QUIZ_TITLE"
+        git push
