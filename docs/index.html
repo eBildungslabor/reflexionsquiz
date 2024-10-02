@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@1.5.5/css/pico.min.css">
+    <title>Reflexionsquiz erstellen</title>
+</head>
+<body>
+    <main class="container">
+        <h1>Reflexionsquiz erstellen</h1>
+        <p>Erstelle ein Quiz, bei dem fiktive pädagogische Szenarien unterschiedlichen Aspekten zugeordnet werden.</p>
+        
+        <!-- Mehrschrittiges Formular -->
+        <form id="quizForm">
+            <!-- Schritt 1 -->
+            <div>
+                <label for="title">Schritt 1: Titel für dein Quiz</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            
+            <!-- Schritt 2 -->
+            <div>
+                <label for="aspects">Schritt 2: Aspekt-Liste (jeder Aspekt in einer neuen Zeile)</label>
+                <textarea id="aspects" name="aspects" rows="5" required></textarea>
+            </div>
+            
+            <!-- Schritt 3: Hier werden Szenarien-Felder dynamisch hinzugefügt -->
+            <div id="scenarios-container"></div>
+            
+            <!-- Button zum Erstellen der Szenarien -->
+            <button type="button" onclick="generateScenarioFields()">Schritt 3: Szenarien eintragen</button>
+            
+            <!-- Button zum Absenden -->
+            <button type="submit">Erstellen</button>
+        </form>
+    </main>
+
+    <script>
+        let aspectsArray = [];
+
+        function generateScenarioFields() {
+            const aspects = document.getElementById('aspects').value.split('\n');
+            aspectsArray = aspects;
+            const container = document.getElementById('scenarios-container');
+            container.innerHTML = ''; // Vorherige Felder löschen
+
+            aspects.forEach((aspect, index) => {
+                const label = document.createElement('label');
+                label.innerText = `Szenarien für Aspekt: ${aspect}`;
+                container.appendChild(label);
+
+                const textarea = document.createElement('textarea');
+                textarea.name = `scenarios_${index}`;
+                textarea.rows = 5;
+                textarea.required = true;
+                container.appendChild(textarea);
+            });
+        }
+    </script>
+</body>
+</html>
