@@ -36,53 +36,54 @@
         </form>
     </main>
 
-    <script>
-        let aspectsArray = [];
-
-        function generateScenarioFields() {
-            const aspects = document.getElementById('aspects').value.split('\n');
-            aspectsArray = aspects;
-            const container = document.getElementById('scenarios-container');
-            container.innerHTML = ''; // Vorherige Felder löschen
-
-            aspects.forEach((aspect, index) => {
-                const label = document.createElement('label');
-                label.innerText = `Szenarien für Aspekt: ${aspect}`;
-                container.appendChild(label);
-
-                const textarea = document.createElement('textarea');
-                textarea.name = `scenarios_${index}`;
-                textarea.rows = 5;
-                textarea.required = true;
-                container.appendChild(textarea);
-            });
-        }
-
-        document.getElementById('quizForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            submitForm();
+  <script>
+    async function submitForm() {
+        const title = document.getElementById('title').value;
+        const aspects = document.getElementById('aspects').value.split('\n');
+        const scenarios = aspects.map((aspect, index) => {
+            return {
+                aspect: aspect,
+                scenarios: document.getElementsByName(`scenarios_${index}`)[0].value.split('\n')
+            };
         });
 
-        function submitForm() {
-            const title = document.getElementById('title').value;
-            const aspects = document.getElementById('aspects').value.split('\n');
-            const scenarios = aspects.map((aspect, index) => {
-                return {
-                    aspect: aspect,
-                    scenarios: document.getElementsByName(`scenarios_${index}`)[0].value.split('\n')
-                };
-            });
+        const formData = {
+            title: title,
+            aspects: aspects,
+            scenarios: scenarios
+        };
 
-            // JSON-Daten aus dem Formular erstellen
-            const formData = {
-                title: title,
-                aspects: aspects,
-                scenarios: scenarios
-            };
+        // Konvertiere die Daten in Base64, da die GitHub API das benötigt
+        const content = btoa(JSON.stringify(formData));
 
-            console.log('Formulardaten:', formData);
-            alert('Das Formular wurde abgeschickt! (Daten werden in der Konsole angezeigt)');
+        // GitHub API-Aufruf, um die JSON-Datei ins Repository zu laden
+        const response = await fetch(`https://api.github.com/repos/eBildungslabor/reflexionsquiz/contents/data/quiz.json`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,  // Greife auf den Token aus den GitHub Secrets zu
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: "Add new quiz",  // Commit-Nachricht
+                content: content,        // Die Formulardaten als Base64
+                branch: "main"           // Der Branch, in dem die Datei gespeichert werden soll
+            })
+        });
+
+        if (response.ok) {
+            alert('Quiz wurde erfolgreich erstellt!');
+        } else {
+            alert('Fehler beim Speichern des Quiz');
         }
-    </script>
+    }
+
+    // Event Listener für den Submit-Button
+    document.getElementById('quizForm').addEventListener('submit', function(event) {
+        event.preventDefault();  // Verhindert den Standard-Submit des Formulars
+        submitForm();            // Ruft die submitForm Funktion auf
+    });
+</script>
+
 </body>
 </html>
