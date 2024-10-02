@@ -57,6 +57,32 @@
                 container.appendChild(textarea);
             });
         }
+
+        document.getElementById('quizForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            submitForm();
+        });
+
+        function submitForm() {
+            const title = document.getElementById('title').value;
+            const aspects = document.getElementById('aspects').value.split('\n');
+            const scenarios = aspects.map((aspect, index) => {
+                return {
+                    aspect: aspect,
+                    scenarios: document.getElementsByName(`scenarios_${index}`)[0].value.split('\n')
+                };
+            });
+
+            // JSON-Daten aus dem Formular erstellen
+            const formData = {
+                title: title,
+                aspects: aspects,
+                scenarios: scenarios
+            };
+
+            console.log('Formulardaten:', formData);
+            alert('Das Formular wurde abgeschickt! (Daten werden in der Konsole angezeigt)');
+        }
     </script>
 </body>
 </html>
